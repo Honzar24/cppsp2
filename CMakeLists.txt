@@ -1,17 +1,19 @@
-cmake_minimum_required(VERSION 3.0.0)
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+cmake_minimum_required(VERSION 3.15.0)
 
-if(UNIX)
-    set	(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -Wextra -pedantic -Werror")    
-endif(UNIX)
 
 project(Mem_DB VERSION 0.1.0)
 
+if(${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME})
+    if(UNIX)
+        set	(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -Wextra -pedantic -Werror")    
+    endif(UNIX)
+    set(CMAKE_CXX_EXTENSIONS OFF)
+    set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+endif()
 
-add_library(Mem_DB src/Mem_DB.cpp)
+add_subdirectory(src)
 
-add_executable(kiv-cpp-sp-02 app/main.cpp)
+add_subdirectory(app)
 
-include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+
 
