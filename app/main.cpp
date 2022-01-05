@@ -4,16 +4,24 @@
 #include <sstream>
 #include <vector>
 #include <regex>
+#include <concepts>
 
 #include <Mem_DB/CMemory_Database.hpp>
 
+std::regex command_regex("([A-Z_]+)\\((.*)\\)", std::regex::ECMAScript);
+constexpr size_t command_regex_command = 1;
+constexpr size_t command_regex_args = 2;
 
-std::regex command_regex("(?<name>[A-Z_]+)\\((?<args>.+)\\)"); 
-std::regex args_regex("[^,\\s][^\\,\\n]*[^,\\s]*");
+std::regex args_regex("[^,\\s][^\\,\\n]*[^,\\s]*", std::regex::ECMAScript);
 
-std::regex double_regex("\\d?\\.\\d?");
-std::regex string_regex("\".*\"");
-std::regex pair_regex("\\[(?<Key>.+):(?<value>.+)\\]");
+std::regex double_regex("\\d?\\.\\d?", std::regex::ECMAScript);
+std::regex string_regex("\"[^\"]*\"", std::regex::ECMAScript);
+//                        key   value
+std::regex pair_regex("\\[(.+):(.+)\\]", std::regex::ECMAScript);
+constexpr size_t pair_regex_key = 1;
+constexpr size_t pair_regex_value = 2;
+
+
 
 enum class Directiv {
     UNKNOWN,
@@ -30,7 +38,7 @@ enum class Directiv {
 };
 
 using enum Directiv;
-constexpr auto COMMANDS = { INSERT,DELETE,KEY_EQUALS,KEY_GREATER,KEY_LESS,FIND_VALUE,AVERAGE,MIN,MAX };
+constexpr auto COMMANDS = { INSERT,DELETE,KEY_EQUALS,KEY_GREATER,KEY_LESS,FIND_VALUE,AVERAGE,MIN,MAX,EXIT };
 
 constexpr  std::string_view command_to_str(const Directiv& com)
 {
@@ -60,11 +68,13 @@ class Command {
 public:
     Command(Directiv d, std::string&& args) :directiv(d), args(std::move(args)) {}
 
-    Command(const Command& o) {
+    Command(const Command& o)
+    {
         directiv = o.directiv;
         args = o.args;
     };
-    Command(Command&& o) {
+    Command(Command&& o)
+    {
         directiv = o.directiv; o.directiv = UNKNOWN;
         args = std::move(o.args);
     };
@@ -84,7 +94,7 @@ public:
         return *this;
     }
 
-    ~Command(){};
+    ~Command() {};
 
     friend std::ostream& operator<<(std::ostream& s, Command& c)
     {
@@ -108,33 +118,53 @@ Command parseCommand(std::istream& stream)
 {
     std::string line;
     stream >> line;
-    auto bracket = line.find('(');
-    std::string_view commnad = line.substr(0, bracket);
+    std::smatch match;
+    if (!std::regex_search(line, match, command_regex))
+    {
+        if (line.compare(command_to_str(EXIT)) == 0)
+        {
+            return { EXIT,"" };
+        }
+        return { UNKNOWN,"" };
+    }
+    auto command = match[command_regex_command].str();
     for (auto& com : COMMANDS)
     {
-        if (commnad.compare(command_to_str(com)) == 0)
+        if (command.compare(command_to_str(com)) == 0)
         {
-            return { com,line.substr(bracket) };
+            return { com,match[command_regex_args].str() };
         }
     }
-    if (commnad.compare(command_to_str(EXIT)) == 0)
-    {
-        return { EXIT,"" };
-    }
     return { UNKNOWN,"" };
+}
+
+Command loadCommand()
+{
+    std::cout << ">";
+    Command com = parseCommand(std::cin);
+    while (com.getDirectiv() == UNKNOWN)
+    {
+        std::cout << "Unknow command try again!" << std::endl;
+        std::cout << ">";
+        com = parseCommand(std::cin);
+    }
+    return com;
+}
+
+void doCommand(const Command& com)
+{
+    
 }
 
 int main(int argc, char** argv)
 {
     if (argc < 3)
     {
-        std::cout << ">";
-        Command com = parseCommand(std::cin);
+        auto com = loadCommand();
         while (com.getDirectiv() != EXIT)
         {
             std::cout << com << std::endl;
-            std::cout << ">";
-            com = parseCommand(std::cin);
+            com = loadCommand();
         }
     } else
     {
@@ -142,6 +172,25 @@ int main(int argc, char** argv)
 
     }
 
+    CMemory_Database database;
+
+    std::string key = "pokus";
+    std::cout << database.Insert(1,1,2,3,4,5);
+    std::cout << database.Insert("1",5,4,3,2,1);
+    std::cout << database.Insert(Pair(1, "auto"), 1, 2, 3, 4, 5, 6, 8, 9, 10);
+    std::cout << database.Insert(Pair(1, 1), 1, 2, 3, 4, 5, 6, 8, 9, 10);
+    std::cout << database.Insert(Pair(1,1),"hello");
+    std::cout << database.Search_Key(1, CMemory_Database::DB_operation::KEY_EQUALS);
+    std::cout << database.Search_Key("1", CMemory_Database::DB_operation::KEY_EQUALS);
+    std::cout << database.Search_Key(1.6, CMemory_Database::DB_operation::KEY_EQUALS);
+    std::cout << database.Search_Key(Pair(1, 1), CMemory_Database::DB_operation::KEY_EQUALS);
+
+    std::cout << (Pair(1, 2) <=> Pair(1, 2) == std::strong_ordering::equal) << std::endl;
+    std::cout << (Pair(1, 3) <=> Pair(1, 2) == std::strong_ordering::equal) << std::endl;
+    std::cout << (Pair(2, 2) <=> Pair(1, 2) == std::strong_ordering::equal) << std::endl;
+    std::cout << (Pair(1, 2) <=> Pair(1, 4) == std::strong_ordering::equal) << std::endl;
+    std::cout << (Pair(1, 2) <=> Pair(2, 2) == std::strong_ordering::equal) << std::endl;
+    std::cout << (Pair(1.0, 2.) <=> Pair("bla", 2.5) == std::strong_ordering::equal) << std::endl;
 
     return 0;
 }
