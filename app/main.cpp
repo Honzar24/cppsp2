@@ -10,6 +10,7 @@
 #include <limits>
 #include <filesystem>
 #include <fstream>
+#include <exception>
 
 #include <Mem_DB/CMemory_Database.hpp>
 
@@ -104,7 +105,7 @@ enum class Directiv : size_t {
 using enum Directiv;
 constexpr auto COMMANDS = { INSERT,DELETE,KEY_EQUALS,KEY_GREATER,KEY_LESS,FIND_VALUE,AVERAGE,MIN,MAX,EXIT };
 
-constexpr  std::string_view directiv_to_str(const Directiv& com)
+constexpr  std::string_view directiv_to_str(const Directiv& com) noexcept
 {
     switch (com)
     {
@@ -122,35 +123,35 @@ constexpr  std::string_view directiv_to_str(const Directiv& com)
     }
 }
 
-std::ostream& operator<<(std::ostream& s, const Directiv com)
+std::ostream& operator<<(std::ostream& s, const Directiv com) noexcept
 {
     s << directiv_to_str(com);
     return s;
 }
 class Command {
 public:
-    Command(Directiv d, std::string&& args) :directiv(d), args(std::move(args)) {}
+    Command(Directiv d, std::string&& args) noexcept :directiv(d), args(std::move(args)) {}
 
-    Command(const Command& o)
+    Command(const Command& o) noexcept
     {
         directiv = o.directiv;
         args = o.args;
     };
-    Command(Command&& o)
+    Command(Command&& o) noexcept
     {
         directiv = o.directiv; o.directiv = UNKNOWN;
         args = std::move(o.args);
     };
 
 
-    Command& operator=(const Command& o)
+    Command& operator=(const Command& o) noexcept
     {
         directiv = o.directiv;
         args = o.args;
         return *this;
     }
 
-    Command& operator=(Command&& o)
+    Command& operator=(Command&& o) noexcept
     {
         directiv = o.directiv; o.directiv = UNKNOWN;
         args = std::move(o.args);
@@ -159,18 +160,18 @@ public:
 
     ~Command() {};
 
-    friend std::ostream& operator<<(std::ostream& s, Command& c)
+    friend std::ostream& operator<<(std::ostream& s, Command& c) noexcept
     {
         s << c.directiv << "(" << c.args << ")";
         return s;
     };
 
-    inline Directiv getDirectiv() const
+    inline Directiv getDirectiv() const noexcept
     {
         return directiv;
     }
 
-    inline std::string getArgs() const
+    inline std::string getArgs() const noexcept
     {
         return args;
     }
@@ -459,11 +460,18 @@ int main(int argc, char** argv)
         std::cout << "Welcome in KIV/CPP semestral work - memory database.\n"
             "You can also run commands from file via runnig program with this set of arguments: <inputfile> <outputfile>\n"
             "Please, enter your query after this (>) symbol." << std::endl;
+        try {
         auto com = loadCommand();
         while (com.getDirectiv() != EXIT)
         {
             execute_command(std::cout, database, com);
             com = loadCommand();
+        }
+        }
+        catch (std::runtime_error& e)
+        {
+            std::cerr << "ERROR" << std::endl << e.what() << std::endl << "exiting" << std::endl;
+            return EXIT_FAILURE;
         }
     } else
     {

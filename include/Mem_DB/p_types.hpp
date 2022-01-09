@@ -16,26 +16,26 @@ concept DB_type_primitive = std::convertible_to<T, int> || std::convertible_to<T
 
 using DB_variant_p = std::variant<int, double, std::string>;
 
-std::ostream& operator<<(std::ostream& s, const DB_variant_p& var);
+std::ostream& operator<<(std::ostream& s, const DB_variant_p& var) noexcept;
 
 
 class Pair {
 public:
-    Pair() {};
-    Pair(auto& f, auto& s) :first(f), second(s) {};
-    Pair(auto&& f, auto&& s) :first(std::move(f)), second(std::move(s)) {};
+    Pair() noexcept {};
+    Pair(auto& f, auto& s) noexcept :first(f), second(s) {};
+    Pair(auto&& f, auto&& s) noexcept :first(std::move(f)), second(std::move(s)) {};
 
-    Pair(const Pair& c) :first(c.first), second(c.second) {};
-    Pair(Pair&& m) :first(std::move(m.first)), second(std::move(m.second)) {};
+    Pair(const Pair& c) noexcept :first(c.first), second(c.second) {};
+    Pair(Pair&& m) noexcept :first(std::move(m.first)), second(std::move(m.second)) {};
 
-    Pair& operator=(const Pair& c)
+    Pair& operator=(const Pair& c) noexcept
     {
         first = c.first;
         second = c.second;
         return *this;
     }
 
-    Pair& operator=(const Pair&& m)
+    Pair& operator=(Pair&& m) noexcept
     {
         first = std::move(m.first);
         second = std::move(m.second);
@@ -46,16 +46,16 @@ public:
 
     auto operator<=>(const Pair&) const = default;
 
-    DB_variant_p getFirst()const
+    DB_variant_p getFirst() const noexcept
     {
         return first;
     }
-    DB_variant_p getSecond()const
+    DB_variant_p getSecond() const noexcept
     {
         return second;
     }
 
-    friend std::ostream& operator<<(std::ostream& s, const Pair& p)
+    friend std::ostream& operator<<(std::ostream& s, const Pair& p) noexcept
     {
         s << "[";
         s << p.first;
@@ -77,32 +77,32 @@ concept DB_type = DB_type_primitive<T> || std::derived_from<T, Pair>;
 
 using DB_variant = std::variant<int, double, std::string, Pair>;
 
-std::ostream& operator<<(std::ostream& s, const DB_variant& var);
+std::ostream& operator<<(std::ostream& s, const DB_variant& var) noexcept;
 
 
 class Record {
 public:
-    Record(const DB_variant& key, const std::vector<DB_variant>& vals) :key(key), values(vals) {};
-    Record(const DB_variant& key, const DB_variant& value) :key(key), values({})
+    Record(const DB_variant& key, const std::vector<DB_variant>& vals) noexcept :key(key), values(vals) {};
+    Record(const DB_variant& key, const DB_variant& value) noexcept :key(key), values({})
     {
         values.push_back(value);
     };
 
-    void add(const DB_variant& value)
+    void add(const DB_variant& value) noexcept
     {
         values.push_back(value);
     }
-    void add(const std::vector<DB_variant> values)
+    void add(const std::vector<DB_variant> values) noexcept
     {
         std::copy(values.begin(), values.end(), this->values.begin());
     }
 
-    std::vector<DB_variant> getValues() const
+    std::vector<DB_variant> getValues() const noexcept
     {
         return values;
     }
 
-    friend std::ostream& operator<<(std::ostream& s, const Record& r)
+    friend std::ostream& operator<<(std::ostream& s, const Record& r) noexcept
     {
         s << r.key;
         s << " - ";
@@ -130,15 +130,14 @@ using functor_type = std::function<bool(const DB_variant& key, const DB_variant&
 class Result_type
 {
 public:
-    Result_type() :status(true), lines(0), records({}) {};
-    Result_type(bool status, size_t lines) :status(status), lines(lines), records({}) {};
-    Result_type(size_t lines) :Result_type(true, lines) {};
-    void add(const Record& rec)
+    Result_type() noexcept :status(true), lines(0), records({}) {};
+    Result_type(bool status, size_t lines) noexcept :status(status), lines(lines), records({}) {};
+    void add(const Record& rec) noexcept
     {
         records.push_back(rec);
         lines++;
     }
-    void add(const DB_variant& key, const DB_variant& value)
+    void add(const DB_variant& key, const DB_variant& value) noexcept
     {
         auto ri = std::find_if(records.begin(), records.end(), [&key](const Record& i) {return key == i.key;});
         if (ri != records.end())
@@ -149,7 +148,7 @@ public:
         records.emplace_back(Record(key, value));
         lines++;
     }
-    void add(const DB_variant& key, const std::vector<DB_variant>& values)
+    void add(const DB_variant& key, const std::vector<DB_variant>& values) noexcept
     {
         auto ri = std::find_if(records.begin(), records.end(), [&key](const Record& i) {return key == i.key;});
         if (ri != records.end())
@@ -161,17 +160,17 @@ public:
         lines++;
     }
 
-    inline size_t getLines()const
+    inline size_t getLines() const noexcept
     {
         return lines;
     }
 
-    inline bool empty()const
+    inline bool empty() const noexcept
     {
         return records.size() == 0;
     }
 
-    std::vector<DB_variant> getValues() const
+    std::vector<DB_variant> getValues() const noexcept
     {
         std::vector<DB_variant> ret;
         for (auto& record : records)
@@ -182,7 +181,7 @@ public:
         return ret;
     }
 
-    friend std::ostream& operator<<(std::ostream& s, const Result_type& r)
+    friend std::ostream& operator<<(std::ostream& s, const Result_type& r) noexcept
     {
         std::string t = r.status ? "OK" : "ERROR";
         s << t << std::endl;

@@ -30,7 +30,7 @@ public:
         KEY_LESS
     };
 
-    constexpr bool compare(auto&& order, const operation& op) const
+    constexpr bool compare(auto&& order, const operation& op) const noexcept
     {
         using enum operation;
         switch (op)
@@ -46,10 +46,10 @@ public:
     }
 
 
-    CMemory_Database() : base(base_type()) {};
+    CMemory_Database() noexcept : base(base_type()) {};
 
     template<DB_type key_type, DB_type... Vals>
-    Result_type Insert(key_type key, Vals... values)
+    Result_type Insert(key_type key, Vals... values) noexcept
     {
         Result_type result;
         auto& vect = base[key];
@@ -59,7 +59,7 @@ public:
     }
 
     template<DB_type key_type>
-    Result_type Delete(key_type key)
+    Result_type Delete(key_type key) noexcept
     {
         Result_type result;
         //auto& vect = base[key];
@@ -69,7 +69,7 @@ public:
     }
 
     template<DB_type key_type, DB_type... V>
-    Result_type Delete(key_type key, V... values)
+    Result_type Delete(key_type key, V... values) noexcept
     {
         Result_type result;
         auto& vect = base[key];
@@ -79,7 +79,7 @@ public:
     }
 
     template<DB_type key_type>
-    Result_type Search_Key(const key_type& key, const operation& op) const
+    Result_type Search_Key(const key_type& key, const operation& op) const noexcept
     {
         Result_type result;
         for (const auto& [key_v, values] : base)
@@ -139,31 +139,31 @@ public:
 
 
     // functor_type bude funktor/funkce/lambda, ktera splnuje koncept (vraci bool, zda vysledek vyhovuje nebo ne)
-    Result_type Find_Value(functor_type func) const;
+    Result_type Find_Value(functor_type func) const noexcept;
 
 private:
     template<DB_type V>
-    void m_insert(std::vector<DB_variant>& vect, V value)
+    void m_insert(std::vector<DB_variant>& vect, V value) noexcept
     {
         vect.push_back(value);
     }
 
     template<DB_type V, DB_type... VALS>
-    void m_insert(std::vector<DB_variant>& vect, V value, VALS... values)
+    void m_insert(std::vector<DB_variant>& vect, V value, VALS... values) noexcept
     {
         vect.push_back(value);
         m_insert(vect, values...);
     }
 
     template<DB_type V>
-    void m_delete(std::vector<DB_variant>& vect, V value)
+    void m_delete(std::vector<DB_variant>& vect, V value) noexcept
     {
         DB_variant val(value);
         vect.erase(std::remove(vect.begin(), vect.end(), val));
     }
 
     template<DB_type V, DB_type... VALS>
-    void m_delete(std::vector<DB_variant>& vect, V value, VALS... values)
+    void m_delete(std::vector<DB_variant>& vect, V value, VALS... values) noexcept
     {
         DB_variant val(value);
         vect.erase(std::remove(vect.begin(), vect.end(), val));

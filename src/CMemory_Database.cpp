@@ -1,6 +1,6 @@
 #include <Mem_DB/CMemory_Database.hpp>
 
-std::ostream& operator<<(std::ostream& s, const DB_variant_p& var)
+std::ostream& operator<<(std::ostream& s, const DB_variant_p& var) noexcept
 {
     std::visit(visitors{
             [&](const int& i) {s << i;},
@@ -10,7 +10,7 @@ std::ostream& operator<<(std::ostream& s, const DB_variant_p& var)
     return s;
 }
 
-std::ostream& operator<<(std::ostream& s, const DB_variant& var)
+std::ostream& operator<<(std::ostream& s, const DB_variant& var) noexcept
 {
     std::visit(visitors{
             [&](const int& i) {s << i;},
@@ -21,7 +21,7 @@ std::ostream& operator<<(std::ostream& s, const DB_variant& var)
     return s;
 }
 
-Result_type CMemory_Database::Find_Value(functor_type func) const
+Result_type CMemory_Database::Find_Value(functor_type func) const noexcept
 {
     Result_type result;
     for (const auto& [key, values] : base)
