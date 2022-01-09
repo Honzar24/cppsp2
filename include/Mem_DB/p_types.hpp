@@ -9,15 +9,19 @@
 #include <algorithm>
 #include <iostream>
 
+template<class... TS> struct visitors :TS... {using TS::operator()...;};
 
 template<typename T>
 concept DB_type_primitive = std::convertible_to<T, int> || std::convertible_to<T, double> || std::convertible_to<T, std::string>;
 
 using DB_variant_p = std::variant<int, double, std::string>;
 
+std::ostream& operator<<(std::ostream& s, const DB_variant_p& var);
+
 
 class Pair {
 public:
+    Pair() {};
     Pair(auto& f, auto& s) :first(f), second(s) {};
     Pair(auto&& f, auto&& s) :first(std::move(f)), second(std::move(s)) {};
 
@@ -54,9 +58,9 @@ public:
     friend std::ostream& operator<<(std::ostream& s, const Pair& p)
     {
         s << "[";
-        std::visit([&s](auto&& val) {s << val;}, p.first);
+        s << p.first;
         s << ":";
-        std::visit([&s](auto&& val) {s << val;}, p.second);
+        s << p.second;
         s << "]";
         return s;
     }
@@ -66,10 +70,14 @@ private:
     DB_variant_p second;
 };
 
+
 template<typename T>
-concept DB_type = DB_type_primitive<T> || std::derived_from<T,Pair>;
+concept DB_type = DB_type_primitive<T> || std::derived_from<T, Pair>;
+
 
 using DB_variant = std::variant<int, double, std::string, Pair>;
+
+std::ostream& operator<<(std::ostream& s, const DB_variant& var);
 
 
 class Record {
@@ -89,18 +97,23 @@ public:
         std::copy(values.begin(), values.end(), this->values.begin());
     }
 
+    std::vector<DB_variant> getValues() const
+    {
+        return values;
+    }
+
     friend std::ostream& operator<<(std::ostream& s, const Record& r)
     {
-        std::visit([&s](auto&& val) {s << val;}, r.key);
+        s << r.key;
         s << " - ";
         size_t i;
-        for(i=0; i < (r.values.size()-1); i++)
+        for (i = 0; i < (r.values.size() - 1); i++)
         {
-            std::visit([&s](auto&& val) {s << val << ", ";}, r.values[i]);
+            s << r.values[i] << ", ";
         }
-        if(i >= 1)
+        if (r.values.size() != 0)
         {
-            std::visit([&s](auto&& val) {s << val;}, r.values[i]);
+            s << r.values[i];
         }
         return s;
     }
@@ -117,9 +130,9 @@ using functor_type = std::function<bool(const DB_variant& key, const DB_variant&
 class Result_type
 {
 public:
-    Result_type():status(true),lines(0),records({}){};
-    Result_type(bool status,size_t lines) :status(status),lines(lines),records({}) {};
-    Result_type(size_t lines):Result_type(true,lines){};
+    Result_type() :status(true), lines(0), records({}) {};
+    Result_type(bool status, size_t lines) :status(status), lines(lines), records({}) {};
+    Result_type(size_t lines) :Result_type(true, lines) {};
     void add(const Record& rec)
     {
         records.push_back(rec);
@@ -147,12 +160,39 @@ public:
         records.emplace_back(Record(key, values));
         lines++;
     }
+
+    inline size_t getLines()const
+    {
+        return lines;
+    }
+
+    inline bool empty()const
+    {
+        return records.size() == 0;
+    }
+
+    std::vector<DB_variant> getValues() const
+    {
+        std::vector<DB_variant> ret;
+        for (auto& record : records)
+        {
+            const auto& vect = record.getValues();
+            ret.insert(ret.end(), vect.begin(), vect.end());
+        }
+        return ret;
+    }
+
     friend std::ostream& operator<<(std::ostream& s, const Result_type& r)
     {
         std::string t = r.status ? "OK" : "ERROR";
         s << t << std::endl;
         s << r.lines << " rows." << std::endl;
-        for (auto& record : r.records)
+        if (r.records.size() == 0)
+        {
+            s << "Empty." << std::endl;
+            return s;
+        }
+        for (const auto& record : r.records)
         {
             s << record << std::endl;
         }
@@ -163,4 +203,5 @@ private:
     size_t lines;
     std::vector<Record> records;
 };
+
 
