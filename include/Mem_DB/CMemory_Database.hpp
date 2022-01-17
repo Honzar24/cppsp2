@@ -11,6 +11,7 @@
 #include <iostream>
 
 #include <Mem_DB/p_types.hpp>
+#include <Mem_DB/Result_type.hpp>
 
 
 template<typename T>

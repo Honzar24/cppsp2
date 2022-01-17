@@ -491,7 +491,7 @@ int main(int argc, char** argv)
         }
         if (!out.is_open())
         {
-            std::cerr << "Can not open input file " << output.make_preferred().string() << " error:" << strerror(errno) << std::endl;
+            std::cerr << "Can not open output file " << output.make_preferred().string() << " error:" << strerror(errno) << std::endl;
             return EXIT_FAILURE;
         }
         try {
